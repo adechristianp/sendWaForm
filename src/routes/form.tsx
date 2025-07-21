@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
-// src/routes/form.tsx
 import { useEffect, useState } from 'react';
 import { createFileRoute, useSearch } from '@tanstack/react-router';
 import { decodeForm } from '../lib/formUtils';
@@ -15,10 +14,10 @@ type Values = {
 
 function FormPage() {
   const { data, darkMode: darkQuery } = useSearch({} as any);
-
   const form = decodeForm(data);
   const [values, setValues] = useState<Values>({});
   const { darkMode, setDarkMode } = useTheme();
+  const [formTouched, setFormTouched] = useState(false);
 
   useEffect(() => {
     if (typeof darkQuery === 'boolean') {
@@ -35,9 +34,8 @@ function FormPage() {
   const handleOptionMultipleChange = (label: string, option: string, checked: boolean) => {
     const current = values[label] || [];
     const updated = checked
-      ? [...current, { name: option, count: '' }]
+      ? [...current, { name: option, count: '1' }]
       : current.filter((item: any) => item.name !== option);
-
     setValues({ ...values, [label]: updated });
   };
 
@@ -50,11 +48,26 @@ function FormPage() {
   };
 
   const handleChange = (label: string, value: string) => {
-    // Ubah nomor HP dari 08... jadi 628...
     if (label.toLowerCase().includes('no') && value.startsWith('08')) {
       value = '628' + value.slice(2);
     }
     setValues({ ...values, [label]: value });
+  };
+
+  const getFieldError = (field: any, val: any): string | null => {
+    if (field.type === 'option' && field.multiple) {
+      if (!val || val.length === 0) return 'Wajib pilih minimal satu';
+      if (val.some((v: any) => !v.count || Number(v.count) < 1)) {
+        return 'Jumlah harus minimal 1';
+      }
+    } else {
+      if (!val || val === '') return 'Wajib diisi';
+    }
+    return null;
+  };
+
+  const isFormValid = () => {
+    return form.fields.every((f: any) => !getFieldError(f, values[f.label]));
   };
 
   const message = `*${form.title}*\n\n` + form.fields
@@ -73,73 +86,108 @@ function FormPage() {
   const waLink = `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`;
 
   return (
-    <div className={`${darkMode ? 'bg-gray-900 text-white' : 'bg-white text-black'} min-h-screen p-4`}>
-      <div className={`${darkMode ? 'bg-gray-950' : 'bg-gray-100'} max-w-xl mx-auto rounded p-4 space-y-4`}>
+    <div className={`${darkMode ? 'bg-gray-950 text-white' : 'bg-white text-black'} p-4`}>
+      <div className={`${darkMode ? 'bg-gray-900' : 'bg-gray-100'} max-w-xl mx-auto rounded p-4 space-y-4`}>
         <h1 className="text-xl font-bold">{form.title}</h1>
 
-        <form className="space-y-4">
-          {form.fields.map((f: any, idx: number) => (
-            <div key={idx}>
-              <label className="block mb-1 font-medium">{f.label}</label>
+        <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+          {form.fields.map((f: any, idx: number) => {
+            const val = values[f.label];
+            const error = getFieldError(f, val);
 
-              {f.type === 'option' && f.multiple ? (
-                // MULTIPLE CHECKBOX WITH COUNT
-                <div className="space-y-2">
-                  {(f.options || '').split(',').map((opt: string, i: number) => {
-                    const isChecked = (values[f.label] || []).some((v: any) => v.name === opt.trim());
-                    const currentItem = (values[f.label] || []).find((v: any) => v.name === opt.trim());
-                    return (
-                      <div key={i} className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={(e) => handleOptionMultipleChange(f.label, opt.trim(), e.target.checked)}
-                        />
-                        <span className="w-32">{opt.trim()}</span>
-                        {isChecked && (
+            return (
+              <div key={idx}>
+                <label className="block mb-1 font-medium">{f.label}</label>
+
+                {f.type === 'option' && f.multiple ? (
+                  <div className="space-y-2">
+                    {(f.options || '').split(',').map((opt: string, i: number) => {
+                      const isChecked = (val || []).some((v: any) => v.name === opt.trim());
+                      const currentItem = (val || []).find((v: any) => v.name === opt.trim());
+                      return (
+                        <div key={i} className="flex items-center gap-2">
                           <input
-                            type="number"
-                            placeholder="Jumlah"
-                            className="w-24 p-1 border rounded bg-inherit"
-                            value={currentItem?.count || ''}
-                            onChange={(e) => handleOptionCountChange(f.label, opt.trim(), e.target.value)}
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) =>
+                              handleOptionMultipleChange(f.label, opt.trim(), e.target.checked)
+                            }
                           />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : f.type === 'option' ? (
-                // SINGLE SELECT OPTION
-                <select
-                  className="w-full p-2 border rounded bg-inherit"
-                  onChange={(e) => handleChange(f.label, e.target.value)}
-                >
-                  <option value="">-- Pilih salah satu --</option>
-                  {(f.options || '').split(',').map((opt: string, i: number) => (
-                    <option key={i} value={opt.trim()}>{opt.trim()}</option>
-                  ))}
-                </select>
-              ) : (
-                // TEXT INPUT
-                <input
-                  className="w-full p-2 border rounded bg-inherit"
-                  placeholder={`Tulis jawaban untuk ${f.label}`}
-                  onChange={(e) => handleChange(f.label, e.target.value)}
-                />
-              )}
-            </div>
-          ))}
+                          <span className="w-32">{opt.trim()}</span>
+                          {isChecked && (
+                            <input
+                              type="number"
+                              min={1}
+                              placeholder="Jumlah"
+                              className="w-24 p-1 border rounded bg-inherit"
+                              value={currentItem?.count || ''}
+                              onChange={(e) =>
+                                handleOptionCountChange(f.label, opt.trim(), e.target.value)
+                              }
+                              onBlur={() => setFormTouched(true)}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : f.type === 'option' ? (
+                  <select
+                    className="w-full p-2 border rounded bg-inherit"
+                    value={val || ''}
+                    onChange={(e) => handleChange(f.label, e.target.value)}
+                    onBlur={() => setFormTouched(true)}
+                  >
+                    <option value="">-- Pilih salah satu --</option>
+                    {(f.options || '').split(',').map((opt: string, i: number) => (
+                      <option key={i} value={opt.trim()}>{opt.trim()}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    className="w-full p-2 border rounded bg-inherit"
+                    placeholder={`Tulis jawaban untuk ${f.label}`}
+                    value={val || ''}
+                    onChange={(e) => handleChange(f.label, e.target.value)}
+                    onBlur={() => setFormTouched(true)}
+                  />
+                )}
+
+                {formTouched && error && (
+                  <p className="text-red-500 text-sm mt-1">{error}</p>
+                )}
+              </div>
+            );
+          })}
         </form>
 
-        <a
-          href={waLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block text-center bg-green-600 text-white px-4 py-2 rounded"
+        <button
+          type="button"
+          onClick={() => {
+            setFormTouched(true);
+            if (isFormValid()) {
+              window.open(waLink, '_blank');
+            }
+          }}
+          className={`block text-center w-full ${
+            isFormValid()
+              ? 'bg-green-600 hover:bg-green-700'
+              : 'bg-gray-400 cursor-not-allowed'
+          } text-white px-4 py-2 rounded`}
         >
           Kirim ke WhatsApp
-        </a>
+        </button>
+
+        {formTouched && isFormValid() && (
+          <a
+            href={waLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-center mt-2 text-blue-500 underline"
+          >
+            Klik di sini jika tidak redirect otomatis
+          </a>
+        )}
       </div>
     </div>
   );
