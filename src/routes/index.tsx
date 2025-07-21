@@ -15,7 +15,7 @@ function Home() {
   const [copied, setCopied] = useState(false);
   const [shortLink, setShortLink] = useState('-');
   const [loadingShortLink, setLoadingShortLink] = useState(false);
-  const { darkMode, setDarkMode } = useTheme();
+  const { darkMode } = useTheme();
 
   const selectRefs = useRef<Array<HTMLSelectElement | null>>([]);
 
@@ -43,7 +43,6 @@ function Home() {
     fields.length > 0 &&
     fields.every(f => f.label.trim() !== '' && (f.type !== 'option' || f.options.trim() !== ''));
 
-  console.log('waNumber', waNumber);
   const encoded = encodeForm({ title, fields, waNumber: `62${waNumber}`, darkMode });
 
   const shareLink = `${window.location.origin}/form?data=${encoded}`;
@@ -83,7 +82,7 @@ function Home() {
   };
 
   return (
-    <div className={`${darkMode ? 'bg-black text-white' : 'bg-white text-black'} min-h-screen p-4`}>
+    <div className={`${darkMode ? 'bg-black text-white' : 'bg-white text-black'} flex-1 p-4`}>
       <div className={`${darkMode ? 'bg-gray-900' : 'bg-gray-100'} p-4 rounded-md max-w-xl mx-auto space-y-4`}>
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">📄 Bikin Form Baru</h1>
@@ -135,7 +134,9 @@ function Home() {
                   required
                 />
                 <select
-                  ref={(el) => (selectRefs.current[i] = el)}
+                  ref={(el) => {
+                    selectRefs.current[i] = el;
+                  }}
                   className="p-2 border rounded bg-inherit sm:w-48"
                   value={field.type}
                   onChange={(e) => updateField(i, 'type', e.target.value)}

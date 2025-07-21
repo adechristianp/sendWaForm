@@ -1,11 +1,15 @@
-import { defineConfig } from 'vite'
-import viteReact from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
+/// <reference types="vitest" />
 
-import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
-import { resolve } from 'node:path'
+import { defineConfig } from 'vite';
+import viteReact from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+import { TanStackRouterVite } from '@tanstack/router-plugin/vite';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-// https://vitejs.dev/config/
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 export default defineConfig({
   plugins: [
     TanStackRouterVite({ autoCodeSplitting: true }),
@@ -22,7 +26,7 @@ export default defineConfig({
     },
   },
   server: {
-    host: '0.0.0.0', // <-- ini penting untuk akses via IP
-    port: 3000,       // optional, default 5173 kalau tidak diset
+    host: '0.0.0.0',
+    port: 3000,
   },
-})
+});

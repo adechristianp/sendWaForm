@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 // src/routes/form.tsx
 import { useEffect, useState } from 'react';
 import { createFileRoute, useSearch } from '@tanstack/react-router';
@@ -13,7 +14,8 @@ type Values = {
 };
 
 function FormPage() {
-  const { data, darkMode: darkQuery } = useSearch({ strict: false });
+  const { data, darkMode: darkQuery } = useSearch({} as any);
+
   const form = decodeForm(data);
   const [values, setValues] = useState<Values>({});
   const { darkMode, setDarkMode } = useTheme();
